@@ -22,7 +22,7 @@ dico_elements = {}
 def pages_a_visiter():
     """
     --- ETAPE 1 ----
-    - collecte des tous les liens vers les livres en parcourant les 50 pages du site
+    - collecte des tous les liens vers les livres en parcourant les 50 pages du site -
     """
 
     for numero in range(1, NBRE_DE_PAGES+1):
