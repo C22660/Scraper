@@ -1,29 +1,25 @@
 import requests
 import urllib
 import os
-import shutil
 import re
 import csv
-import time
 
 from bs4 import BeautifulSoup
 from pprint import pprint
 
+from suivi_execution import suivi_collecte_csv, suivi_collecte_images
+# dico_elements = {}
 
-NBRE_DE_PAGES = 50
-# Valeur mini 2, maximum = 50 (pour 1000 livres).
-# En cas de test cette valeur peut être diminuée.
+num_dict = -1
 
 
-liens_vers_livres = []
-contenu_page_vue = []
-dico_elements = {}
-
-def pages_a_visiter():
+def pages_a_visiter(NBRE_DE_PAGES):
     """
     --- ETAPE 1 ----
     - collecte des tous les liens vers les livres en parcourant les 50 pages du site -
     """
+
+    liens_livres = []
 
     for numero in range(1, NBRE_DE_PAGES+1):
         url_pages_site = "http://books.toscrape.com/catalogue/page-" + str(numero) + ".html"
@@ -37,119 +33,97 @@ def pages_a_visiter():
                 a = li.find('a')
                 if a is not None:
                     page = a["href"]
-                    liens_vers_livres.append(urllib.parse.urljoin(url_pages_site, page))
+                    liens_livres.append(urllib.parse.urljoin(url_pages_site, page))
+
+    return liens_livres
 
 
-
-
-
-
-# def soup_url_finaux():
-#     """
-#     ---ETAPE 3---
-#     Préparation de la soup issue des 1000 pages des livres
-#     """
-#
-#     for url in liens_vers_livres:
-#         response_3 = requests.get(url)
-#
-#         if response_3.ok:
-#             soup = BeautifulSoup(response_3.content, "html.parser")
-#     return
-
-
-def collecte_elements_texte():
+def soup_url_finaux(url):
     """
-    # ---ETAPE 4---
-    # - BOUCLE SUR CHAQUE PAGE D'UN LIVRE
-    # - collecte des éléments textes qui seront chargés dans les fichier csv
+    ---ETAPE 3---
+    Préparation de la soupe issue des 1000 pages des livres
     """
-    # j'ouvre un dictionnaire
-    # dico_elements = {}
-    # j'y ajoute des dictionnaires imbriqués numéroté 1 et suivant
 
-    # for num_dict in range(1, len(liens_vers_livres) + 1):
+    # for url in liens:
+    response_3 = requests.get(url)
 
-    num_dict = -1
-    for url in liens_vers_livres:
-        num_dict += 1
-        dico_elements[num_dict] = {}
-        response_3 = requests.get(url)
-
-        if response_3.ok:
-            soup = BeautifulSoup(response_3.content, "html.parser")
-
-        dico_elements[num_dict]["product_page_url"] = url
-
-        for i in soup.find_all("th"):
-            if i.text.strip() == "UPC":
-                upc = i.find_next("td").text.strip()
-                dico_elements[num_dict]["universal_product_code"] = upc
-            if i.text.strip() == "Price (incl. tax)":
-                price_incl = i.find_next("td").text.strip()
-                dico_elements[num_dict]["price_including_tax"] = price_incl
-            if i.text.strip() == "Price (excl. tax)":
-                price_excl = i.find_next("td").text.strip()
-                dico_elements[num_dict]["price_excluding_tax"] = price_excl
-            if i.text.strip() == "Availability":
-                availability = i.find_next("td").text.strip()
-                cell_availability = availability.split("(")
-                number_available = cell_availability[1].strip(" available)")
-                dico_elements[num_dict]["number_available"] = number_available
-
-        # titre
-        title = soup.find("li", class_="active").text
-        dico_elements[num_dict]["title"] = title
-
-        # Recherche de la description (deux livres n'ont pas de description)
-        if soup.find("div", id="product_description", class_="sub-header") is None:
-            dico_elements[num_dict]["product_description"] = "Pas de description"
-        else:
-            for e in soup.find_all("div", id="product_description", class_="sub-header"):
-                dico_elements[num_dict]["product_description"] = e.find_next_sibling().text
-
-        # Recherche de la catégorie
-        soup_category = soup.find("ul", class_="breadcrumb")
-        link_category = soup_category.findAll("a")
-        category = link_category[2].text
-        dico_elements[num_dict]["category"] = category
-
-        # Recherche de la notation
-        star = []
-        for d in soup.find_all("p", class_=re.compile('^star-rating.*')):
-            star.append(d["class"][1])
-            review_rating = star[0]
-            dico_elements[num_dict]["review_rating"] = review_rating
-
-        # !!!! Attention, voir comment ajouter si dico local, le lien image de l'autre fonction
-
-        # dico_elements[upc] = {}
-        # dico_elements[upc]["product_page_url"] = url
-        # dico_elements[upc]["title"] = title
-        # dico_elements[upc]["price_including_tax"] = price_incl
-        # dico_elements[upc]["price_excluding_tax"] = price_excl
-        # dico_elements[upc]["number_available"] = number_available
-        # dico_elements[upc]["product_description"] = product_description
-        # dico_elements[upc]["category"] = category
-        # dico_elements[upc]["review_rating"] = review_rating
-
-    print(len(dico_elements))
+    if response_3.ok:
+        soup = BeautifulSoup(response_3.content, "html.parser")
+    return soup
 
 
-def collecte_images():
+def collecte_elements_texte(liens, soup, dico_elements):
+    """
+    ---ETAPE 4---
+    - BOUCLE SUR CHAQUE PAGE D'UN LIVRE
+    - collecte des éléments textes qui seront chargés dans les fichier csv
+    """
+
+    # j'ajoute des dictionnaires imbriqués numérotés 0 et suivant
+    global num_dict
+
+    # for url in liens_vers_livres:
+    num_dict += 1
+    dico_elements[num_dict] = {}
+
+    dico_elements[num_dict]["product_page_url"] = liens
+
+    for i in soup.find_all("th"):
+        if i.text.strip() == "UPC":
+            upc = i.find_next("td").text.strip()
+            dico_elements[num_dict]["universal_product_code"] = upc
+        if i.text.strip() == "Price (incl. tax)":
+            price_incl = i.find_next("td").text.strip()
+            dico_elements[num_dict]["price_including_tax"] = price_incl
+        if i.text.strip() == "Price (excl. tax)":
+            price_excl = i.find_next("td").text.strip()
+            dico_elements[num_dict]["price_excluding_tax"] = price_excl
+        if i.text.strip() == "Availability":
+            availability = i.find_next("td").text.strip()
+            cell_availability = availability.split("(")
+            number_available = cell_availability[1].strip(" available)")
+            dico_elements[num_dict]["number_available"] = number_available
+
+    # titre
+    title = soup.find("li", class_="active").text
+    dico_elements[num_dict]["title"] = title
+
+    # Recherche de la description (deux livres n'ont pas de description)
+    if soup.find("div", id="product_description", class_="sub-header") is None:
+        dico_elements[num_dict]["product_description"] = "Pas de description"
+    else:
+        for e in soup.find_all("div", id="product_description", class_="sub-header"):
+            dico_elements[num_dict]["product_description"] = e.find_next_sibling().text
+
+    # Recherche de la catégorie
+    soup_category = soup.find("ul", class_="breadcrumb")
+    link_category = soup_category.findAll("a")
+    category = link_category[2].text
+    dico_elements[num_dict]["category"] = category
+
+    # Recherche de la notation
+    star = []
+    for d in soup.find_all("p", class_=re.compile('^star-rating.*')):
+        star.append(d["class"][1])
+        review_rating = star[0]
+        dico_elements[num_dict]["review_rating"] = review_rating
+
+
+def collecte_images(link_img, liens, soup, dico_elements):
     """
     ---ETAPE 5---
     - Collecte des images des livres en les classant dans un dossier images.
     - Pour une meilleure indentification, le nom de l'image sera l'upc du livre correspondant
     """
     images_find = []
-    link_img = []
 
-    for url in liens_vers_livres:
-        response_3 = requests.get(url)
+    # collecte des liens images
+    for img in soup.find_all("div", class_="item active"):
+        images_find.append(img.find("img")["src"])
 
-        if response_3.ok:
-            soup = BeautifulSoup(response_3.text, "html.parser")
+    # reconstruction du lien complet
+    for elm in images_find:
+        link_img.append(urllib.parse.urljoin(liens, elm))
 
         # création d'un dossier pour collecter les images
         chemin_dossier_parent = os.path.dirname(__file__)
@@ -157,31 +131,20 @@ def collecte_images():
         if not os.path.exists(dossier_images):
             os.makedirs(dossier_images)
 
-        # collecte des liens images
-        for img in soup.find_all("div", class_="item active"):
-            images_find.append(img.find("img")["src"])
-
-    # reconstruction du lien complet
-    for elm in images_find:
-        link_img.append(urllib.parse.urljoin(url, elm))
-
-
     # sauvegarde en local de l'image
     for ref, lien_img in enumerate(link_img):
         resource = urllib.request.urlopen(lien_img)
         image_file_name = (dico_elements[ref]["universal_product_code"]) + ".jpg"
-        output = open(image_file_name, "wb")
+        chemin_fichier_image = os.path.join(chemin_dossier_parent, dossier_images, image_file_name)
+        output = open(chemin_fichier_image, "wb")
         output.write(resource.read())
         output.close()
 
-        # déplacement de l'image dans le dossier image
-        chemin_fichier_image = os.path.join(chemin_dossier_parent, image_file_name)
-        shutil.move(chemin_fichier_image, dossier_images)
-
-        # !!!!!!! ajout dans le dico, comment récupérer upc
+    # ajout dans le dico du lien de l'image
         dico_elements[ref]["image_url"] = lien_img
 
-def creation_des_fichiers():
+
+def creation_des_fichiers(dico_elements, NBRE_DE_PAGES):
     """
     ---- ETAPE 6 - FICHIER CSV module CSV
     _ création d'un dossier de collecte des fichiers
@@ -211,6 +174,11 @@ def creation_des_fichiers():
                 writer = csv.DictWriter(csvfile, dialect=csv.excel, fieldnames=fieldnames)
 
                 writer.writeheader()
+    # recap nombre image et affichage du nombre de fichier csv créés
+    print(36 * "~")
+    suivi_collecte_images(NBRE_DE_PAGES)
+    suivi_collecte_csv(dico_elements)
+    print(36 * "~")
 
     # Ecriture dans les fichiers correspondants
     for item in dico_elements:
@@ -222,34 +190,31 @@ def creation_des_fichiers():
                           "price_excluding_tax",
                           "number_available", "product_description", "category", "review_rating", "image_url"]
             writer = csv.DictWriter(csvfile, dialect=csv.excel, fieldnames=fieldnames)
-            writer.writerow({"product_page_url": dico_elements[item]["product_page_url"],
-        "universal_product_code": dico_elements[item]["universal_product_code"],"title": dico_elements[item]["title"],
-        "price_including_tax": dico_elements[item]["price_including_tax"],
-        "price_excluding_tax": dico_elements[item]["price_excluding_tax"],
-        "number_available": dico_elements[item]["number_available"],
-        "product_description": dico_elements[item]["product_description"], "category": dico_elements[item]["category"],
-        "review_rating": dico_elements[item]["review_rating"], "image_url": dico_elements[item]["image_url"]})
+            writer.writerow({
+                            "product_page_url": dico_elements[item]["product_page_url"],
+                            "universal_product_code": dico_elements[item]["universal_product_code"],
+                            "title": dico_elements[item]["title"],
+                            "price_including_tax": dico_elements[item]["price_including_tax"],
+                            "price_excluding_tax": dico_elements[item]["price_excluding_tax"],
+                            "number_available": dico_elements[item]["number_available"],
+                            "product_description": dico_elements[item]["product_description"],
+                            "category": dico_elements[item]["category"],
+                            "review_rating": dico_elements[item]["review_rating"],
+                            "image_url": dico_elements[item]["image_url"]
+                            })
 
 
 if __name__ == "__main__":
-    start_time = time.time()
-    pages_a_visiter()
-    # soup_url_finaux()
-    collecte_elements_texte()
-    collecte_images()
-    creation_des_fichiers()
-    # pprint(liens_vers_livres)
-    # print(len(liens_vers_livres))
-    # print(dico_elements)
-    # print(len(dico_elements))
-    # print("upc "+str(len(upc)))
-    # print("title "+str(len(title)))
-    # print("price in "+str(len(price_incl)))
-    # print("price ex "+str(len(price_excl)))
-    # print("available "+str(len(number_available)))
-    # print("prd descr "+str(len(product_description)))
-    # print("categ "+str(len(category)))
-    # print("files catge "+str(len(files_category)))
-    # print("ratin "+str(len(review_rating)))
-    # print("link img "+len(link_img))
-    print("--- %s seconds ---" % (time.time() - start_time))
+    NBRE_DE_PAGES = 1
+
+    num_dict = -1
+    contenu_page_vue = []
+    # j'ouvre un dictionnaire
+    link_img = []
+    liste_liens = pages_a_visiter(NBRE_DE_PAGES)
+    for liens in liste_liens:
+        soup = soup_url_finaux(liens)
+        dictionnaire = collecte_elements_texte(liens, soup)
+        collecte_images(link_img, liens, soup)
+    pprint(dico_elements)
+    # creation_des_fichiers()
