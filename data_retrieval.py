@@ -5,10 +5,9 @@ import re
 import csv
 
 from bs4 import BeautifulSoup
-from pprint import pprint
 
 from suivi_execution import suivi_collecte_csv, suivi_collecte_images
-# dico_elements = {}
+
 
 num_dict = -1
 
@@ -130,8 +129,8 @@ def collecte_images(link_img, liens, soup, dico_elements):
         dossier_images = os.path.join(chemin_dossier_parent, "images")
         if not os.path.exists(dossier_images):
             os.makedirs(dossier_images)
-
-    # sauvegarde en local de l'image
+    #
+    # # sauvegarde en local de l'image
     for ref, lien_img in enumerate(link_img):
         resource = urllib.request.urlopen(lien_img)
         image_file_name = (dico_elements[ref]["universal_product_code"]) + ".jpg"
@@ -142,7 +141,6 @@ def collecte_images(link_img, liens, soup, dico_elements):
 
     # ajout dans le dico du lien de l'image
         dico_elements[ref]["image_url"] = lien_img
-
 
 def creation_des_fichiers(dico_elements, NBRE_DE_PAGES):
     """
@@ -174,7 +172,8 @@ def creation_des_fichiers(dico_elements, NBRE_DE_PAGES):
                 writer = csv.DictWriter(csvfile, dialect=csv.excel, fieldnames=fieldnames)
 
                 writer.writeheader()
-    # recap nombre image et affichage du nombre de fichier csv créés
+
+    # recap nombre d'images collectées et affichage du nombre de fichier csv créés
     print(36 * "~")
     suivi_collecte_images(NBRE_DE_PAGES)
     suivi_collecte_csv(dico_elements)
@@ -202,19 +201,3 @@ def creation_des_fichiers(dico_elements, NBRE_DE_PAGES):
                             "review_rating": dico_elements[item]["review_rating"],
                             "image_url": dico_elements[item]["image_url"]
                             })
-
-
-if __name__ == "__main__":
-    NBRE_DE_PAGES = 1
-
-    num_dict = -1
-    contenu_page_vue = []
-    # j'ouvre un dictionnaire
-    link_img = []
-    liste_liens = pages_a_visiter(NBRE_DE_PAGES)
-    for liens in liste_liens:
-        soup = soup_url_finaux(liens)
-        dictionnaire = collecte_elements_texte(liens, soup)
-        collecte_images(link_img, liens, soup)
-    pprint(dico_elements)
-    # creation_des_fichiers()

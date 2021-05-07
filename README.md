@@ -16,7 +16,7 @@ le code UPC du livre pour en faciliter l'identification.
 
 ## Information
 Ce programme est adapté pour visiter le site Books to Scrape (50 pages, 1000 livres).
-**Le nombre de page à visiter peut être réduit en entête de script.**
+**Le nombre de pages à visiter a été ramené en entête de script main pour permettre un test.**
 
 ## Techologies
 Python 3.9
