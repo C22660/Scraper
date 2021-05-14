@@ -16,7 +16,8 @@ def suivi_collecte_images(NBRE_DE_PAGES):
 
     if os.path.exists(dossier_images):
         contenu_dossier_images = os.listdir(dossier_images)
-        print("Nombre d'images collectées = " + str(len(contenu_dossier_images)) + " / " + str(NBRE_DE_PAGES * 20))
+        print("Nombre d'images collectées = " +
+              str(len(contenu_dossier_images)) + " / " + str(NBRE_DE_PAGES * 20))
 
 
 def suivi_collecte_csv(dico_elements):

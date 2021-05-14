@@ -1,9 +1,9 @@
-import requests
 import urllib
 import os
 import re
 import csv
 
+import requests
 from bs4 import BeautifulSoup
 
 from suivi_execution import suivi_collecte_csv, suivi_collecte_images
@@ -27,7 +27,7 @@ def pages_a_visiter(NBRE_DE_PAGES):
 
         if response.ok:
             soup_site = BeautifulSoup(response.text, "html.parser")
-            lis = soup_site.findAll("h3")
+            lis = soup_site.find_all("h3")
             for li in lis:
                 a = li.find('a')
                 if a is not None:
@@ -96,7 +96,7 @@ def collecte_elements_texte(liens, soup, dico_elements):
 
     # Recherche de la catégorie
     soup_category = soup.find("ul", class_="breadcrumb")
-    link_category = soup_category.findAll("a")
+    link_category = soup_category.find_all("a")
     category = link_category[2].text
     dico_elements[num_dict]["category"] = category
 
@@ -124,13 +124,19 @@ def collecte_images(link_img, liens, soup, dico_elements):
     for elm in images_find:
         link_img.append(urllib.parse.urljoin(liens, elm))
 
-        # création d'un dossier pour collecter les images
-        chemin_dossier_parent = os.path.dirname(__file__)
-        dossier_images = os.path.join(chemin_dossier_parent, "images")
-        if not os.path.exists(dossier_images):
-            os.makedirs(dossier_images)
-    #
-    # # sauvegarde en local de l'image
+        # # création d'un dossier pour collecter les images
+        # chemin_dossier_parent = os.path.dirname(__file__)
+        # dossier_images = os.path.join(chemin_dossier_parent, "images")
+        # if not os.path.exists(dossier_images):
+        #     os.makedirs(dossier_images)
+
+def sauvegarde_images(link_img, dico_elements):
+    # création d'un dossier pour collecter les images
+    chemin_dossier_parent = os.path.dirname(__file__)
+    dossier_images = os.path.join(chemin_dossier_parent, "images")
+    if not os.path.exists(dossier_images):
+        os.makedirs(dossier_images)
+    # sauvegarde en local de l'image
     for ref, lien_img in enumerate(link_img):
         resource = urllib.request.urlopen(lien_img)
         image_file_name = (dico_elements[ref]["universal_product_code"]) + ".jpg"
@@ -141,6 +147,7 @@ def collecte_images(link_img, liens, soup, dico_elements):
 
     # ajout dans le dico du lien de l'image
         dico_elements[ref]["image_url"] = lien_img
+
 
 def creation_des_fichiers(dico_elements, NBRE_DE_PAGES):
     """
