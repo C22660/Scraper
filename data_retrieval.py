@@ -12,15 +12,14 @@ from suivi_execution import suivi_collecte_csv, suivi_collecte_images
 num_dict = -1
 
 
-def pages_a_visiter(NBRE_DE_PAGES):
+def pages_a_visiter(nbre_de_pages):
     """
     --- ETAPE 1 ----
     - collecte des tous les liens vers les livres en parcourant les 50 pages du site -
     """
-
     liens_livres = []
 
-    for numero in range(1, NBRE_DE_PAGES+1):
+    for numero in range(1, nbre_de_pages + 1):
         url_pages_site = "http://books.toscrape.com/catalogue/page-" + str(numero) + ".html"
 
         response = requests.get(url_pages_site)
@@ -39,11 +38,10 @@ def pages_a_visiter(NBRE_DE_PAGES):
 
 def soup_url_finaux(url):
     """
-    ---ETAPE 3---
+    ---ETAPE 2---
     Préparation de la soupe issue des 1000 pages des livres
     """
 
-    # for url in liens:
     response_3 = requests.get(url)
 
     if response_3.ok:
@@ -51,21 +49,19 @@ def soup_url_finaux(url):
     return soup
 
 
-def collecte_elements_texte(liens, soup, dico_elements):
+def collecte_elements_texte(lien, soup, dico_elements):
     """
-    ---ETAPE 4---
+    ---ETAPE 3---
     - BOUCLE SUR CHAQUE PAGE D'UN LIVRE
     - collecte des éléments textes qui seront chargés dans les fichier csv
     """
 
     # j'ajoute des dictionnaires imbriqués numérotés 0 et suivant
     global num_dict
-
-    # for url in liens_vers_livres:
     num_dict += 1
     dico_elements[num_dict] = {}
 
-    dico_elements[num_dict]["product_page_url"] = liens
+    dico_elements[num_dict]["product_page_url"] = lien
 
     for i in soup.find_all("th"):
         if i.text.strip() == "UPC":
@@ -104,54 +100,45 @@ def collecte_elements_texte(liens, soup, dico_elements):
     star = []
     for d in soup.find_all("p", class_=re.compile('^star-rating.*')):
         star.append(d["class"][1])
-        review_rating = star[0]
-        dico_elements[num_dict]["review_rating"] = review_rating
+    review_rating = star[0]
+    dico_elements[num_dict]["review_rating"] = review_rating
 
 
-def collecte_images(link_img, liens, soup, dico_elements):
+def collecte_images(lien, soup, dico_elements, ref):
     """
-    ---ETAPE 5---
+    ---ETAPE 4---
     - Collecte des images des livres en les classant dans un dossier images.
     - Pour une meilleure indentification, le nom de l'image sera l'upc du livre correspondant
     """
-    images_find = []
 
-    # collecte des liens images
+    # collecte du lien de l'image active
     for img in soup.find_all("div", class_="item active"):
-        images_find.append(img.find("img")["src"])
+        collecte_lien = img.find("img")["src"]
 
     # reconstruction du lien complet
-    for elm in images_find:
-        link_img.append(urllib.parse.urljoin(liens, elm))
+    lien_complet = urllib.parse.urljoin(lien, collecte_lien)
 
-        # # création d'un dossier pour collecter les images
-        # chemin_dossier_parent = os.path.dirname(__file__)
-        # dossier_images = os.path.join(chemin_dossier_parent, "images")
-        # if not os.path.exists(dossier_images):
-        #     os.makedirs(dossier_images)
-
-def sauvegarde_images(link_img, dico_elements):
     # création d'un dossier pour collecter les images
     chemin_dossier_parent = os.path.dirname(__file__)
     dossier_images = os.path.join(chemin_dossier_parent, "images")
     if not os.path.exists(dossier_images):
         os.makedirs(dossier_images)
+
     # sauvegarde en local de l'image
-    for ref, lien_img in enumerate(link_img):
-        resource = urllib.request.urlopen(lien_img)
-        image_file_name = (dico_elements[ref]["universal_product_code"]) + ".jpg"
-        chemin_fichier_image = os.path.join(chemin_dossier_parent, dossier_images, image_file_name)
-        output = open(chemin_fichier_image, "wb")
-        output.write(resource.read())
-        output.close()
+    resource = urllib.request.urlopen(lien_complet)
+    image_file_name = (dico_elements[ref]["universal_product_code"]) + ".jpg"
+    chemin_fichier_image = os.path.join(chemin_dossier_parent, dossier_images, image_file_name)
+    output = open(chemin_fichier_image, "wb")
+    output.write(resource.read())
+    output.close()
 
     # ajout dans le dico du lien de l'image
-        dico_elements[ref]["image_url"] = lien_img
+    dico_elements[ref]["image_url"] = lien_complet
 
 
-def creation_des_fichiers(dico_elements, NBRE_DE_PAGES):
+def creation_des_fichiers(dico_elements, nbre_de_pages):
     """
-    ---- ETAPE 6 - FICHIER CSV module CSV
+    ---- ETAPE 5 - FICHIER CSV module CSV
     _ création d'un dossier de collecte des fichiers
     - un fichier par catégorie de livre
     Attention, configuration pour excel en français avec modification du delimiteur en point virgule et
@@ -159,7 +146,6 @@ def creation_des_fichiers(dico_elements, NBRE_DE_PAGES):
     """
 
     # création d'un dossier pour collecter les fichiers csv
-
     chemin_dossier_parent = os.path.dirname(__file__)
     dossier_csv = os.path.join(chemin_dossier_parent, "fichiers_csv")
     if not os.path.exists(dossier_csv):
@@ -182,7 +168,7 @@ def creation_des_fichiers(dico_elements, NBRE_DE_PAGES):
 
     # recap nombre d'images collectées et affichage du nombre de fichier csv créés
     print(36 * "~")
-    suivi_collecte_images(NBRE_DE_PAGES)
+    suivi_collecte_images(nbre_de_pages)
     suivi_collecte_csv(dico_elements)
     print(36 * "~")
 

@@ -8,7 +8,7 @@ def annonce_lancement():
     print()
 
 
-def suivi_collecte_images(NBRE_DE_PAGES):
+def suivi_collecte_images(nbre_de_pages):
     """ Suivi du déroulé en comptant le nombre de fichiers images et CSV constitué """
     dossier_parent = os.path.dirname(__file__)
     # suivi des fichiers images
@@ -17,7 +17,7 @@ def suivi_collecte_images(NBRE_DE_PAGES):
     if os.path.exists(dossier_images):
         contenu_dossier_images = os.listdir(dossier_images)
         print("Nombre d'images collectées = " +
-              str(len(contenu_dossier_images)) + " / " + str(NBRE_DE_PAGES * 20))
+              str(len(contenu_dossier_images)) + " / " + str(nbre_de_pages * 20))
 
 
 def suivi_collecte_csv(dico_elements):
