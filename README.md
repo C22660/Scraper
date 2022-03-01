@@ -1,4 +1,4 @@
-# Programme d'extration des prix
+# Programme d'extraction des prix
 
 Ce programme à pour objet de **parcourir les pages d'un site de vente en ligne**
 de livres pour relever :
